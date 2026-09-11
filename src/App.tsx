@@ -5,6 +5,7 @@ import {
   Database,
   LayoutDashboard,
   Send,
+  Unplug,
   Users,
 } from 'lucide-react'
 import type { ClusterInfo, ConnectionConfig, ConsumerGroupInfo, TopicInfo } from '../shared/types'
@@ -78,6 +79,23 @@ export default function App() {
     await refresh()
   }
 
+  const disconnect = async () => {
+    await window.kafdeck.kafka.stopLive()
+    const result = await window.kafdeck.kafka.disconnect()
+    setConnected(false)
+    setCluster(null)
+    setTopics([])
+    setGroups([])
+    setTopic(null)
+    setProduceTopic(false)
+    setView('connections')
+    if (!result.ok) {
+      toasts.error(result.error)
+      return
+    }
+    toasts.ok('Disconnected')
+  }
+
   const openTopic = (name: string) => {
     setTopic(name)
     setView('browser')
@@ -110,9 +128,17 @@ export default function App() {
             <span className="muted">Not connected</span>
           )}
         </div>
-        <button className="btn btn-small" onClick={() => void refresh()} disabled={!connected || loading}>
-          {loading ? 'Refreshing…' : 'Refresh'}
-        </button>
+        <div className="row">
+          <button className="btn btn-small" onClick={() => void refresh()} disabled={!connected || loading}>
+            {loading ? 'Refreshing…' : 'Refresh'}
+          </button>
+          {connected && (
+            <button className="btn btn-small" onClick={() => void disconnect()}>
+              <Unplug size={14} />
+              Disconnect
+            </button>
+          )}
+        </div>
       </header>
 
       <div className="shell">
@@ -211,8 +237,9 @@ export default function App() {
               {view === 'connections' && (
                 <Connections
                   connections={connections}
-                  activeId={active?.id ?? null}
+                  activeId={connected ? active?.id ?? null : null}
                   connecting={connecting}
+                  onDisconnect={() => void disconnect()}
                   onSave={(connection) => {
                     const exists = connections.some((item) => item.id === connection.id)
                     persist(

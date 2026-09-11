@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import type { ConnectionConfig, SaslMechanism } from '../../shared/types'
 import { Modal } from '../components/Modal'
 import { newId } from '../format'
-import { Cable, Plus, PlugZap, Shield, Trash2 } from 'lucide-react'
+import { Cable, Plus, PlugZap, Shield, Trash2, Unplug } from 'lucide-react'
 
 const emptyForm = (): Omit<ConnectionConfig, 'id'> => ({
   name: '',
@@ -18,6 +18,7 @@ export function Connections({
   connecting,
   onSave,
   onConnect,
+  onDisconnect,
   onDelete,
 }: {
   connections: ConnectionConfig[]
@@ -25,6 +26,7 @@ export function Connections({
   connecting: boolean
   onSave: (connection: ConnectionConfig) => void
   onConnect: (connection: ConnectionConfig) => void
+  onDisconnect: () => void
   onDelete: (id: string) => void
 }) {
   const [editing, setEditing] = useState<ConnectionConfig | null>(null)
@@ -86,10 +88,17 @@ export function Connections({
                   <span>{connection.clientId}</span>
                 </div>
                 <div className="row">
-                  <button className="btn btn-accent" disabled={connecting} onClick={() => onConnect(connection)}>
-                    <PlugZap size={15} />
-                    {connecting && active ? 'Connecting…' : 'Connect'}
-                  </button>
+                  {active ? (
+                    <button className="btn" onClick={onDisconnect}>
+                      <Unplug size={15} />
+                      Disconnect
+                    </button>
+                  ) : (
+                    <button className="btn btn-accent" disabled={connecting} onClick={() => onConnect(connection)}>
+                      <PlugZap size={15} />
+                      {connecting ? 'Connecting…' : 'Connect'}
+                    </button>
+                  )}
                   <button className="btn" onClick={() => setEditing(connection)}>
                     Edit
                   </button>
