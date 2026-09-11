@@ -1,0 +1,26 @@
+src/views/Connections.tsx
+  s_d6f5f5ec77dd88::t_8bfb7d5f34c25e 91-101
+  s_d6f5f5ec77dd88::t_30a589548770c1 21,29
+  s_d6f5f5ec77dd88::t_b7090dcbece738 5
+src/App.tsx
+  s_d6f5f5ec77dd88::t_4566ba643adfe4 8
+  s_d6f5f5ec77dd88::t_91987242be6338 240,242
+  s_d6f5f5ec77dd88::t_22941136907b24 131-141
+  s_d6f5f5ec77dd88::t_568a70d227faa6 82-98
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.11",
+  "base_commit_sha": "d17a9e67c8d7cc3de048982e60f39b4c09bf844f",
+  "prompts": {},
+  "sessions": {
+    "s_d6f5f5ec77dd88": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "b988582a-8f6c-4b75-9d6e-e6e57196168b",
+        "model": "grok-4.6"
+      },
+      "human_author": "Tarsidi <tarsidi.danesh@tiket.com>"
+    }
+  }
+}
