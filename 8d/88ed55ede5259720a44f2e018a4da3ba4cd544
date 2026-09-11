@@ -1,0 +1,68 @@
+shared/types.ts
+  s_d6f5f5ec77dd88::t_88a83353a4b7e0 1-113
+src/vite-env.d.ts
+  s_d6f5f5ec77dd88::t_06020341e31c6d 1-35
+  s_d6f5f5ec77dd88::t_b081eb9c52f09d 36-43
+src/views/Groups.tsx
+  s_d6f5f5ec77dd88::t_be0818118b9821 1-134
+src/format.ts
+  s_d6f5f5ec77dd88::t_8d627c61727f0f 1-60
+src/main.tsx
+  s_d6f5f5ec77dd88::t_df73c757eeb7ba 1-10
+src/App.tsx
+  s_d6f5f5ec77dd88::t_5cbf879b8d4a31 86-94
+  s_d6f5f5ec77dd88::t_236785d0a1b492 1
+  s_d6f5f5ec77dd88::t_97728b74971ee8 255
+  s_d6f5f5ec77dd88::t_82b13734f7fad8 37
+  s_d6f5f5ec77dd88::t_f91185d0cced49 2-36,38-85,95-254,256-267
+src/views/Produce.tsx
+  s_d6f5f5ec77dd88::t_0da260d761f0ab 1-96
+src/views/TopicBrowser.tsx
+  s_d6f5f5ec77dd88::t_69c62c4b279b1a 1-243
+src/views/Overview.tsx
+  s_d6f5f5ec77dd88::t_4e9431bf7de278 118
+  s_d6f5f5ec77dd88::t_62b40b646992f4 1
+  s_d6f5f5ec77dd88::t_01855c23834392 2-117,119-133
+electron/preload.ts
+  s_d6f5f5ec77dd88::t_0b328a60dc4823 1-50
+src/views/Connections.tsx
+  s_d6f5f5ec77dd88::t_8711e248e742ed 1-276
+electron/kafka.ts
+  s_d6f5f5ec77dd88::t_31a9d51230ea86 146,153-155
+  s_d6f5f5ec77dd88::t_c96682f02e80b6 388-389
+  s_d6f5f5ec77dd88::t_bc25df74342262 270-272
+  s_d6f5f5ec77dd88::t_bcdd0cae796f94 121-125
+  s_d6f5f5ec77dd88::t_ba03678b138683 1
+  s_d6f5f5ec77dd88::t_5b70d8dc675e4c 218-221,233
+  s_d6f5f5ec77dd88::t_dc1a26ee4acc38 2-120,126-145,147-152,156-217,222-232,234-269,273-387,390-393
+electron/store.ts
+  s_d6f5f5ec77dd88::t_e07adc64f3134f 1-23
+src/components/Modal.tsx
+  s_d6f5f5ec77dd88::t_794b6fc8e1889e 1-35
+src/views/Topics.tsx
+  s_d6f5f5ec77dd88::t_3047a6202b5fdf 1-179
+electron/main.ts
+  s_d6f5f5ec77dd88::t_3b02dce3d6bc0f 1-38,40-126
+  s_d6f5f5ec77dd88::t_0dbcda1f36a7dc 39
+src/components/Toasts.tsx
+  s_d6f5f5ec77dd88::t_dd0f7ae1122cfd 1-39,41-43
+  s_d6f5f5ec77dd88::t_5df42f31041af4 40
+src/styles.css
+  s_d6f5f5ec77dd88::t_a808dade61ac61 1-281
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.11",
+  "base_commit_sha": "8d88ed55ede5259720a44f2e018a4da3ba4cd544",
+  "prompts": {},
+  "sessions": {
+    "s_d6f5f5ec77dd88": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "b988582a-8f6c-4b75-9d6e-e6e57196168b",
+        "model": "grok-4.6"
+      },
+      "human_author": "Tarsidi <tarsidi.danesh@tiket.com>"
+    }
+  }
+}
