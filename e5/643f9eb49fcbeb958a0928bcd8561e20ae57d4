@@ -1,0 +1,21 @@
+README.md
+  s_d6f5f5ec77dd88::t_20a02f96c48028 1-39
+docker-compose.yml
+  s_d6f5f5ec77dd88::t_f0ca5ade290546 1-19
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.11",
+  "base_commit_sha": "e5643f9eb49fcbeb958a0928bcd8561e20ae57d4",
+  "prompts": {},
+  "sessions": {
+    "s_d6f5f5ec77dd88": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "b988582a-8f6c-4b75-9d6e-e6e57196168b",
+        "model": "grok-4.6"
+      },
+      "human_author": "Tarsidi <tarsidi.danesh@tiket.com>"
+    }
+  }
+}
