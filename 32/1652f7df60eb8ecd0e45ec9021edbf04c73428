@@ -1,0 +1,20 @@
+README.md
+  s_d6f5f5ec77dd88::t_1f0c23f902c6b3 31
+  s_d6f5f5ec77dd88::t_b76905bb4a4835 22-27
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.11",
+  "base_commit_sha": "321652f7df60eb8ecd0e45ec9021edbf04c73428",
+  "prompts": {},
+  "sessions": {
+    "s_d6f5f5ec77dd88": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "b988582a-8f6c-4b75-9d6e-e6e57196168b",
+        "model": "grok-4.6"
+      },
+      "human_author": "Tarsidi <tarsidi.danesh@tiket.com>"
+    }
+  }
+}
