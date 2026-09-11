@@ -1,0 +1,33 @@
+index.html
+  s_d6f5f5ec77dd88::t_731a20f771ad42 1-6,13-18
+  s_d6f5f5ec77dd88::t_2dd47b8ca3e84d 7-12
+package.json
+  s_d6f5f5ec77dd88::t_64d751f37eb242 21
+  s_d6f5f5ec77dd88::t_789b6112946f68 1-20,22-59
+tsconfig.json
+  s_d6f5f5ec77dd88::t_a7b93a9ae1301a 1-18,21-23
+  s_d6f5f5ec77dd88::t_dd64d63d14df72 19-20
+.gitignore
+  s_d6f5f5ec77dd88::t_8cab1bc50226c4 1-10
+vite.config.ts
+  s_d6f5f5ec77dd88::t_6aef07b5f3e896 1-13,25-33
+  s_d6f5f5ec77dd88::t_c0f777abacc3bf 14-24
+package-lock.json
+  s_d6f5f5ec77dd88::t_9f238c231552cf 1-5809
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.11",
+  "base_commit_sha": "facca2f7945960b5a040d9da2d028cae3380a700",
+  "prompts": {},
+  "sessions": {
+    "s_d6f5f5ec77dd88": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "b988582a-8f6c-4b75-9d6e-e6e57196168b",
+        "model": "grok-4.6"
+      },
+      "human_author": "Tarsidi <tarsidi.danesh@tiket.com>"
+    }
+  }
+}
