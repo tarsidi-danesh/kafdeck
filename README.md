@@ -19,9 +19,16 @@ docker compose up -d
 
 Then in Kafdeck add a connection to `localhost:9092` and connect.
 
+## Connect and disconnect
+
+1. Open **Connections**.
+2. Click **Add localhost:9092** or **New connection**, save, then **Connect**.
+3. To leave the cluster, click **Disconnect** in the top-right of the window, or on the connected cluster card. That closes the Kafka client and returns you to Connections. Closing the app also disconnects.
+
 ## Features
 
 - Saved connections (PLAINTEXT, SSL, SASL PLAIN / SCRAM)
+- Connect and disconnect from a cluster without quitting the app
 - Cluster overview: brokers, topic volume, group lag
 - Topic list, create, delete
 - Record browser with JSON inspector, filters, and live tail
