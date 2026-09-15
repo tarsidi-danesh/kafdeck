@@ -266,11 +266,13 @@ table.clickable tbody tr:hover, tr.selected { background: rgba(255, 46, 138, 0.0
   position: fixed; right: 16px; bottom: 16px; display: grid; gap: 8px; z-index: 40;
 }
 .toast {
-  min-width: 240px; padding: 10px 12px; border-radius: 10px;
+  min-width: 240px; max-width: 420px; padding: 10px 12px; border-radius: 10px;
   background: var(--bg-3); border: 1px solid var(--line); box-shadow: var(--shadow);
+  text-align: left; font-size: 13px; line-height: 1.45;
 }
+.toast:hover { border-color: var(--muted); }
 .toast-ok { border-color: rgba(62, 224, 162, 0.45); }
-.toast-error { border-color: rgba(255, 107, 122, 0.5); }
+.toast-error { border-color: rgba(255, 107, 122, 0.5); color: var(--bad); }
 
 .status-note { color: var(--muted); font-size: 13px; }
 
@@ -306,13 +308,16 @@ table.clickable tbody tr:hover, tr.selected { background: rgba(255, 46, 138, 0.0
 .csv-preview td { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .row-num { width: 44px; text-align: right; }
 
-.csv-progress { display: flex; align-items: center; gap: 10px; padding: 0 12px; }
-.csv-progress .bar {
+.progress { display: flex; align-items: center; gap: 10px; }
+.csv-progress { padding: 0 12px; }
+.progress .bar {
   flex: 1; height: 6px; border-radius: 999px; background: var(--bg-4); overflow: hidden;
 }
-.csv-progress .bar span {
+.progress .bar span {
   display: block; height: 100%; background: var(--accent); transition: width 120ms linear;
 }
+.spin { animation: spin 900ms linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 .csv-errors { margin: 8px 0 0; padding-left: 18px; display: grid; gap: 3px; font-size: 12px; }
 
 @media (max-width: 1100px) {

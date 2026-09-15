@@ -425,7 +425,7 @@ function CsvForm({
       )}
 
       {progress && (
-        <div className="csv-progress">
+        <div className="progress csv-progress">
           <div className="bar">
             <span
               style={{

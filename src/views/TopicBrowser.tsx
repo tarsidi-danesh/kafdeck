@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ArrowLeft, Copy, Pause, Play, Radio, RefreshCw, Send } from 'lucide-react'
-import type { KafkaRecord, TopicInfo } from '../../shared/types'
+import { ArrowLeft, Copy, Loader2, Pause, Play, Radio, RefreshCw, Send } from 'lucide-react'
+import type { ConsumeProgress, KafkaRecord, TopicInfo } from '../../shared/types'
 import { formatTime, highlightJson, isJson, preview } from '../format'
 
 export function TopicBrowser({
@@ -8,11 +8,13 @@ export function TopicBrowser({
   info,
   onBack,
   onProduce,
+  onError,
 }: {
   topic: string
   info?: TopicInfo
   onBack: () => void
   onProduce: (topic: string) => void
+  onError: (message: string) => void
 }) {
   const [records, setRecords] = useState<KafkaRecord[]>([])
   const [selected, setSelected] = useState<KafkaRecord | null>(null)
@@ -22,11 +24,13 @@ export function TopicBrowser({
   const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(false)
   const [live, setLive] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [progress, setProgress] = useState<ConsumeProgress | null>(null)
+
+  useEffect(() => window.kafdeck.kafka.onConsumeProgress(setProgress), [])
 
   const load = async () => {
     setLoading(true)
-    setError(null)
+    setProgress(null)
     const result = await window.kafdeck.kafka.consume({
       topic,
       from,
@@ -34,8 +38,9 @@ export function TopicBrowser({
       partition: partition === 'all' ? undefined : Number(partition),
     })
     setLoading(false)
+    setProgress(null)
     if (!result.ok) {
-      setError(result.error)
+      onError(result.error)
       return
     }
     setRecords(result.data)
@@ -111,8 +116,8 @@ export function TopicBrowser({
           />
           <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Filter key / value" />
           <button className="btn" onClick={() => void load()} disabled={loading}>
-            <RefreshCw size={15} />
-            Load
+            {loading ? <Loader2 size={15} className="spin" /> : <RefreshCw size={15} />}
+            {loading ? 'Loading…' : 'Load'}
           </button>
           <button className={`btn ${live ? 'btn-live' : ''}`} onClick={() => setLive((value) => !value)}>
             {live ? <Pause size={15} /> : <Play size={15} />}
@@ -125,7 +130,23 @@ export function TopicBrowser({
         </div>
       </div>
 
-      {error && <div className="banner bad">{error}</div>}
+      {loading && (
+        <div className="progress" role="status" aria-live="polite">
+          <Loader2 size={14} className="spin" />
+          <span className="muted small nowrap">
+            {progress
+              ? `Read ${progress.received.toLocaleString()} of ${progress.target.toLocaleString()} records…`
+              : 'Opening a consumer…'}
+          </span>
+          <div className="bar">
+            <span
+              style={{
+                width: progress?.target ? `${(progress.received / progress.target) * 100}%` : '0%',
+              }}
+            />
+          </div>
+        </div>
+      )}
 
       <div className="browser-split">
         <section className="panel grow">
@@ -160,7 +181,7 @@ export function TopicBrowser({
               {filtered.length === 0 && (
                 <tr>
                   <td colSpan={5} className="muted">
-                    {loading ? 'Consuming…' : 'No records in this window.'}
+                    {loading ? 'Consuming…' : query ? 'No records match the filter.' : 'No records in this window.'}
                   </td>
                 </tr>
               )}

@@ -229,6 +229,7 @@ export default function App() {
                   info={topics.find((item) => item.name === topic)}
                   onBack={() => setView('topics')}
                   onProduce={(name) => setProduceTopic(name)}
+                  onError={toasts.error}
                 />
               )}
               {view === 'groups' && (
@@ -267,7 +268,7 @@ export default function App() {
         />
       )}
 
-      <ToastStack toasts={toasts.toasts} />
+      <ToastStack toasts={toasts.toasts} onDismiss={toasts.dismiss} />
     </div>
   )
 }
