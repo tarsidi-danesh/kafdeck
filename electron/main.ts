@@ -1,12 +1,14 @@
-import { app, BrowserWindow, ipcMain, Menu, shell } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from 'electron'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { KafkaManager } from './kafka'
+import { describeFile, inspectCsv } from './csv'
 import { loadConnections, saveConnections } from './store'
 import type {
   ConnectionConfig,
   ConsumeRequest,
   CreateTopicRequest,
+  CsvProduceRequest,
   ProduceRequest,
   Result,
 } from '../shared/types'
@@ -116,6 +118,30 @@ ipcMain.handle('kafka:deleteTopic', (_event, name: string) => wrap(() => kafka.d
 ipcMain.handle('kafka:consume', (_event, request: ConsumeRequest) => wrap(() => kafka.consume(request)))
 ipcMain.handle('kafka:produce', (_event, request: ProduceRequest) => wrap(() => kafka.produce(request)))
 ipcMain.handle('kafka:groups', () => wrap(() => kafka.groups()))
+
+ipcMain.handle('csv:pick', async () => {
+  const result = await dialog.showOpenDialog({
+    title: 'Choose a CSV file',
+    properties: ['openFile'],
+    filters: [
+      { name: 'CSV', extensions: ['csv', 'tsv', 'txt'] },
+      { name: 'All files', extensions: ['*'] },
+    ],
+  })
+  if (result.canceled || !result.filePaths[0]) return null
+  return describeFile(result.filePaths[0])
+})
+ipcMain.handle('csv:inspect', (_event, filePath: string, delimiter?: string) =>
+  wrap(async () => inspectCsv(filePath, delimiter)),
+)
+ipcMain.handle('kafka:produceCsv', (_event, request: CsvProduceRequest) =>
+  wrap(() =>
+    kafka.produceCsv(request, (progress) => {
+      win?.webContents.send('kafka:csvProgress', progress)
+    }),
+  ),
+)
+ipcMain.handle('kafka:cancelCsv', () => kafka.cancelCsv())
 ipcMain.handle('kafka:startLive', async (_event, topic: string) =>
   wrap(() =>
     kafka.startLive(topic, (record) => {

@@ -81,6 +81,56 @@ export type ProduceResult = {
   timestamp: string
 }
 
+export type CsvFile = {
+  path: string
+  name: string
+  size: number
+}
+
+export type CsvPreview = {
+  delimiter: string
+  rows: string[][]
+  columnCount: number
+  totalRows: number
+  truncated: boolean
+}
+
+/** Columns are referenced by index so duplicate or blank header names stay unambiguous. */
+export type CsvProduceRequest = {
+  path: string
+  delimiter: string
+  topic: string
+  hasHeader: boolean
+  /** 'row-json' builds an object from every column; 'column' sends one column verbatim. */
+  valueMode: 'row-json' | 'column'
+  valueColumn?: number
+  keyColumn?: number
+  partitionColumn?: number
+  headerColumns?: number[]
+  skipEmptyRows: boolean
+}
+
+export type CsvProduceProgress = {
+  sent: number
+  failed: number
+  total: number
+}
+
+export type CsvRowError = {
+  row: number
+  message: string
+}
+
+export type CsvProduceSummary = {
+  total: number
+  sent: number
+  failed: number
+  cancelled: boolean
+  errors: CsvRowError[]
+  truncatedErrors: boolean
+  durationMs: number
+}
+
 export type GroupMember = {
   memberId: string
   clientId: string

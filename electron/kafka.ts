@@ -1,17 +1,71 @@
-import { AssignerProtocol, Kafka, logLevel, type Admin, type Consumer, type Producer, type SASLOptions } from 'kafkajs'
+import {
+  AssignerProtocol,
+  Kafka,
+  logLevel,
+  type Admin,
+  type Consumer,
+  type Message,
+  type Producer,
+  type SASLOptions,
+} from 'kafkajs'
 import { randomUUID } from 'node:crypto'
 import { createSocketFactory } from './net'
+import { readCsvForProduce } from './csv'
 import type {
   ClusterInfo,
   ConnectionConfig,
   ConsumeRequest,
   ConsumerGroupInfo,
   CreateTopicRequest,
+  CsvProduceProgress,
+  CsvProduceRequest,
+  CsvProduceSummary,
+  CsvRowError,
   KafkaRecord,
   ProduceRequest,
   ProduceResult,
   TopicInfo,
 } from '../shared/types'
+
+const CSV_BATCH_SIZE = 500
+const MAX_CSV_ERRORS = 100
+
+function buildCsvMessage(row: string[], columns: string[], request: CsvProduceRequest): Message {
+  const cell = (index?: number) => (index == null ? undefined : (row[index] ?? ''))
+
+  let value: string
+  if (request.valueMode === 'column') {
+    value = cell(request.valueColumn) ?? ''
+  } else {
+    const payload: Record<string, string> = {}
+    columns.forEach((name, index) => {
+      payload[name] = row[index] ?? ''
+    })
+    value = JSON.stringify(payload)
+  }
+
+  let partition: number | undefined
+  const rawPartition = cell(request.partitionColumn)
+  if (rawPartition != null && rawPartition !== '') {
+    partition = Number(rawPartition)
+    if (!Number.isInteger(partition) || partition < 0) {
+      throw new Error(`"${rawPartition}" is not a valid partition number`)
+    }
+  }
+
+  const headers: Record<string, string> = {}
+  for (const index of request.headerColumns ?? []) {
+    headers[columns[index] ?? `column_${index + 1}`] = row[index] ?? ''
+  }
+
+  const key = cell(request.keyColumn)
+  return {
+    key: key ? key : null,
+    value,
+    partition,
+    headers,
+  }
+}
 
 function decodeBuffer(buf?: Buffer | null): { text: string; encoding: 'utf8' | 'hex' | 'empty' } {
   if (!buf || buf.length === 0) return { text: '', encoding: 'empty' }
@@ -82,6 +136,7 @@ export class KafkaManager {
   private admin: Admin | null = null
   private producer: Producer | null = null
   private liveConsumer: Consumer | null = null
+  private csvCancelled = false
   current: ConnectionConfig | null = null
 
   async connect(config: ConnectionConfig) {
@@ -261,6 +316,70 @@ export class KafkaManager {
       partition: first.partition,
       offset: first.baseOffset ?? '0',
       timestamp: first.logAppendTime ?? String(Date.now()),
+    }
+  }
+
+  cancelCsv() {
+    this.csvCancelled = true
+  }
+
+  async produceCsv(
+    request: CsvProduceRequest,
+    onProgress: (progress: CsvProduceProgress) => void,
+  ): Promise<CsvProduceSummary> {
+    const producer = this.requireProducer()
+    const { columns, dataRows } = readCsvForProduce(request)
+    const started = Date.now()
+    const errors: CsvRowError[] = []
+    let sent = 0
+    let failed = 0
+
+    this.csvCancelled = false
+    const rowNumber = (index: number) => index + 1 + (request.hasHeader ? 1 : 0)
+    const fail = (index: number, message: string) => {
+      failed++
+      if (errors.length < MAX_CSV_ERRORS) errors.push({ row: rowNumber(index), message })
+    }
+
+    // Build every message first so malformed rows are reported without a broker round trip.
+    const pending: Array<{ index: number; message: Message }> = []
+    dataRows.forEach((row, index) => {
+      try {
+        pending.push({ index, message: buildCsvMessage(row, columns, request) })
+      } catch (error) {
+        fail(index, error instanceof Error ? error.message : String(error))
+      }
+    })
+
+    for (let start = 0; start < pending.length; start += CSV_BATCH_SIZE) {
+      if (this.csvCancelled) break
+      const batch = pending.slice(start, start + CSV_BATCH_SIZE)
+      try {
+        await producer.send({ topic: request.topic, messages: batch.map((item) => item.message) })
+        sent += batch.length
+      } catch {
+        // Retry one at a time so the failure is attributed to the row that caused it.
+        for (const item of batch) {
+          if (this.csvCancelled) break
+          try {
+            await producer.send({ topic: request.topic, messages: [item.message] })
+            sent++
+          } catch (error) {
+            fail(item.index, error instanceof Error ? error.message : String(error))
+          }
+        }
+      }
+      onProgress({ sent, failed, total: dataRows.length })
+    }
+
+    return {
+      total: dataRows.length,
+      sent,
+      failed,
+      cancelled: this.csvCancelled,
+      errors,
+      truncatedErrors: failed > errors.length,
+      durationMs: Date.now() - started,
     }
   }
 

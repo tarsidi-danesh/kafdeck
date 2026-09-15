@@ -3,6 +3,11 @@ import type {
   ConnectionConfig,
   ConsumeRequest,
   CreateTopicRequest,
+  CsvFile,
+  CsvPreview,
+  CsvProduceProgress,
+  CsvProduceRequest,
+  CsvProduceSummary,
   KafkaRecord,
   ProduceRequest,
   Result,
@@ -19,6 +24,11 @@ const api = {
     save: (connections: ConnectionConfig[]) =>
       ipcRenderer.invoke('connections:save', connections) as Promise<void>,
   },
+  csv: {
+    pick: () => ipcRenderer.invoke('csv:pick') as Promise<CsvFile | null>,
+    inspect: (filePath: string, delimiter?: string) =>
+      ipcRenderer.invoke('csv:inspect', filePath, delimiter) as Promise<Result<CsvPreview>>,
+  },
   kafka: {
     connect: (config: ConnectionConfig) =>
       ipcRenderer.invoke('kafka:connect', config) as Promise<Result<void>>,
@@ -34,6 +44,16 @@ const api = {
       ipcRenderer.invoke('kafka:consume', request) as Promise<Result<KafkaRecord[]>>,
     produce: (request: ProduceRequest) =>
       ipcRenderer.invoke('kafka:produce', request) as Promise<Result<ProduceResult>>,
+    produceCsv: (request: CsvProduceRequest) =>
+      ipcRenderer.invoke('kafka:produceCsv', request) as Promise<Result<CsvProduceSummary>>,
+    cancelCsv: () => ipcRenderer.invoke('kafka:cancelCsv') as Promise<void>,
+    onCsvProgress: (handler: (progress: CsvProduceProgress) => void) => {
+      const listener = (_event: unknown, progress: CsvProduceProgress) => handler(progress)
+      ipcRenderer.on('kafka:csvProgress', listener)
+      return () => {
+        ipcRenderer.removeListener('kafka:csvProgress', listener)
+      }
+    },
     groups: () => ipcRenderer.invoke('kafka:groups') as Promise<Result<ConsumerGroupInfo[]>>,
     startLive: (topic: string) => ipcRenderer.invoke('kafka:startLive', topic) as Promise<Result<void>>,
     stopLive: () => ipcRenderer.invoke('kafka:stopLive') as Promise<Result<void>>,

@@ -32,10 +32,31 @@ Then in Kafdeck add a connection to `localhost:9092` and connect.
 - Cluster overview: brokers, topic volume, group lag
 - Topic list, create, delete
 - Record browser with JSON inspector, filters, and live tail
-- Produce messages with optional key and headers
+- Produce messages with optional key and headers, or bulk-produce from a CSV file
 - Consumer groups with members, assignments, and lag
 
 Connection details are stored in the Electron user-data folder on this machine.
+
+## Produce from a CSV file
+
+Open **Produce**, switch to **From CSV file** and pick a file. One record is sent per
+row, in batches, with a progress bar and a **Stop** button.
+
+The delimiter (comma, semicolon, tab or pipe) is detected from the file and can be
+overridden. Quoted fields may contain the delimiter, escaped `""` quotes and
+newlines. Point each column at what it should become:
+
+| Setting | Effect |
+|---|---|
+| Value → Whole row as JSON | Sends `{"column": "cell"}` built from every column |
+| Value → Single column | Sends one column's text verbatim, for pre-serialised payloads |
+| Key column | Uses that column as the record key (optional) |
+| Partition column | Routes each row to the partition named in that column (optional) |
+| Send as headers | Each selected column becomes a record header (optional) |
+
+All cells are sent as strings; no number or boolean coercion happens. Rows that
+cannot be sent (an unparseable partition, for example) are reported with their row
+number and do not stop the rest of the file.
 
 ## Build
 
