@@ -1,5 +1,6 @@
 import { AssignerProtocol, Kafka, logLevel, type Admin, type Consumer, type Producer, type SASLOptions } from 'kafkajs'
 import { randomUUID } from 'node:crypto'
+import { createSocketFactory } from './net'
 import type {
   ClusterInfo,
   ConnectionConfig,
@@ -28,6 +29,54 @@ function saslFrom(config: ConnectionConfig): SASLOptions | undefined {
   }
 }
 
+// kafkajs reports the underlying failure as "Connection error: <cause>" nested in a
+// retry wrapper, which reads as though the app is at fault. Name what to fix instead.
+function connectionError(error: unknown, config: ConnectionConfig): Error {
+  const seen = new Set<unknown>()
+  let raw = String(error)
+  let current: unknown = error
+  while (current && typeof current === 'object' && !seen.has(current)) {
+    seen.add(current)
+    const candidate = current as { message?: string; cause?: unknown; originalError?: unknown }
+    if (candidate.message) raw = candidate.message
+    current = candidate.cause ?? candidate.originalError
+  }
+
+  const servers = config.brokers.join(', ')
+  const unresolved = /(?:ENOTFOUND|EAI_AGAIN)\s+(\S+)/.exec(raw)?.[1]
+  const explain = (detail: string) => {
+    const wrapped = new Error(detail)
+    wrapped.cause = error
+    return wrapped
+  }
+
+  if (unresolved) {
+    return explain(
+      `Could not resolve "${unresolved}". The name did not resolve on this machine, so no broker was reachable. ` +
+        `Check that the VPN is connected and that DNS can resolve the host.`,
+    )
+  }
+  if (/ECONNREFUSED/.test(raw)) {
+    return explain(`Connection refused by ${servers}. The host is reachable but nothing is listening on that port.`)
+  }
+  if (/ETIMEDOUT|EHOSTUNREACH|ENETUNREACH|timeout/i.test(raw)) {
+    return explain(`Timed out reaching ${servers}. A firewall or a missing VPN route is likely blocking the port.`)
+  }
+  if (/SASL|authenticat/i.test(raw)) {
+    return explain(`Authentication failed on ${servers}. Check the SASL mechanism, username and password. (${raw})`)
+  }
+  if (/self.signed|unable to verify|CERT_|DEPTH_ZERO/i.test(raw)) {
+    return explain(`The broker's TLS certificate was rejected. Turn off "Verify certificate" or trust the cluster CA.`)
+  }
+  if (!config.ssl && /ECONNRESET|EPROTO|wrong version number|packet length/i.test(raw)) {
+    return explain(`Connection reset by ${servers}. The broker probably requires TLS — enable SSL for this connection.`)
+  }
+  if (config.ssl && /ECONNRESET|EPROTO|before secure TLS connection/i.test(raw)) {
+    return explain(`TLS handshake failed with ${servers}. The listener is probably PLAINTEXT — try turning SSL off.`)
+  }
+  return explain(raw)
+}
+
 export class KafkaManager {
   private kafka: Kafka | null = null
   private admin: Admin | null = null
@@ -42,14 +91,22 @@ export class KafkaManager {
       brokers: config.brokers,
       ssl: config.ssl ? { rejectUnauthorized: config.rejectUnauthorized } : false,
       sasl: saslFrom(config),
+      socketFactory: createSocketFactory(),
       connectionTimeout: 8000,
       requestTimeout: 15000,
+      retry: { retries: 3, initialRetryTime: 300 },
       logLevel: logLevel.ERROR,
     })
     const admin = kafka.admin()
-    await admin.connect()
     const producer = kafka.producer()
-    await producer.connect()
+    try {
+      await admin.connect()
+      await producer.connect()
+    } catch (error) {
+      await admin.disconnect().catch(() => undefined)
+      await producer.disconnect().catch(() => undefined)
+      throw connectionError(error, config)
+    }
     this.kafka = kafka
     this.admin = admin
     this.producer = producer
@@ -62,17 +119,25 @@ export class KafkaManager {
       brokers: config.brokers,
       ssl: config.ssl ? { rejectUnauthorized: config.rejectUnauthorized } : false,
       sasl: saslFrom(config),
+      socketFactory: createSocketFactory(),
       connectionTimeout: 8000,
       requestTimeout: 10000,
+      // A person is waiting on this one, so surface the reason instead of retrying.
+      retry: { retries: 1, initialRetryTime: 300 },
       logLevel: logLevel.NOTHING,
     })
     const admin = kafka.admin()
-    await admin.connect()
-    const cluster = await admin.describeCluster()
-    await admin.disconnect()
-    return {
-      clusterId: cluster.clusterId,
-      brokers: cluster.brokers.length,
+    try {
+      await admin.connect()
+      const cluster = await admin.describeCluster()
+      return {
+        clusterId: cluster.clusterId,
+        brokers: cluster.brokers.length,
+      }
+    } catch (error) {
+      throw connectionError(error, config)
+    } finally {
+      await admin.disconnect().catch(() => undefined)
     }
   }
 
