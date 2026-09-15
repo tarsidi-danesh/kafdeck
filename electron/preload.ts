@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type {
   ConnectionConfig,
+  ConsumeProgress,
   ConsumeRequest,
   CreateTopicRequest,
   CsvFile,
@@ -42,6 +43,13 @@ const api = {
     deleteTopic: (name: string) => ipcRenderer.invoke('kafka:deleteTopic', name) as Promise<Result<void>>,
     consume: (request: ConsumeRequest) =>
       ipcRenderer.invoke('kafka:consume', request) as Promise<Result<KafkaRecord[]>>,
+    onConsumeProgress: (handler: (progress: ConsumeProgress) => void) => {
+      const listener = (_event: unknown, progress: ConsumeProgress) => handler(progress)
+      ipcRenderer.on('kafka:consumeProgress', listener)
+      return () => {
+        ipcRenderer.removeListener('kafka:consumeProgress', listener)
+      }
+    },
     produce: (request: ProduceRequest) =>
       ipcRenderer.invoke('kafka:produce', request) as Promise<Result<ProduceResult>>,
     produceCsv: (request: CsvProduceRequest) =>

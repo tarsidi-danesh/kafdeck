@@ -115,7 +115,13 @@ ipcMain.handle('kafka:cluster', () => wrap(() => kafka.cluster()))
 ipcMain.handle('kafka:topics', () => wrap(() => kafka.topics()))
 ipcMain.handle('kafka:createTopic', (_event, request: CreateTopicRequest) => wrap(() => kafka.createTopic(request)))
 ipcMain.handle('kafka:deleteTopic', (_event, name: string) => wrap(() => kafka.deleteTopic(name)))
-ipcMain.handle('kafka:consume', (_event, request: ConsumeRequest) => wrap(() => kafka.consume(request)))
+ipcMain.handle('kafka:consume', (_event, request: ConsumeRequest) =>
+  wrap(() =>
+    kafka.consume(request, (progress) => {
+      win?.webContents.send('kafka:consumeProgress', progress)
+    }),
+  ),
+)
 ipcMain.handle('kafka:produce', (_event, request: ProduceRequest) => wrap(() => kafka.produce(request)))
 ipcMain.handle('kafka:groups', () => wrap(() => kafka.groups()))
 

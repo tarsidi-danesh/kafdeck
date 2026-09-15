@@ -57,6 +57,11 @@ export type KafkaRecord = {
   size: number
 }
 
+export type ConsumeProgress = {
+  received: number
+  target: number
+}
+
 export type ConsumeRequest = {
   topic: string
   limit?: number

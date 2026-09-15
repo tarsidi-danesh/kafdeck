@@ -11,9 +11,11 @@ import {
 import { randomUUID } from 'node:crypto'
 import { createSocketFactory } from './net'
 import { readCsvForProduce } from './csv'
+import { registerCompressionCodecs } from './compression'
 import type {
   ClusterInfo,
   ConnectionConfig,
+  ConsumeProgress,
   ConsumeRequest,
   ConsumerGroupInfo,
   CreateTopicRequest,
@@ -29,6 +31,24 @@ import type {
 
 const CSV_BATCH_SIZE = 500
 const MAX_CSV_ERRORS = 100
+const CONSUME_TIMEOUT_MS = 15000
+// Records here can be hundreds of KB, and kafkajs defaults to 1 MB per partition,
+// which turns one screenful of records into a dozen fetch round trips.
+const MAX_BYTES_PER_PARTITION = 8 * 1024 * 1024
+
+registerCompressionCodecs()
+
+/** A crashed consumer otherwise surfaces as a silently truncated result. */
+function consumerCrashError(error: unknown): Error {
+  const message = error instanceof Error ? error.message : String(error)
+  const codec = /(\w+) compression not implemented/i.exec(message)?.[1]
+  if (codec) {
+    return new Error(
+      `This topic uses ${codec} compression, which Kafdeck cannot decode, so no records were read.`,
+    )
+  }
+  return new Error(`Stopped reading records: ${message}`)
+}
 
 function buildCsvMessage(row: string[], columns: string[], request: CsvProduceRequest): Message {
   const cell = (index?: number) => (index == null ? undefined : (row[index] ?? ''))
@@ -383,20 +403,44 @@ export class KafkaManager {
     }
   }
 
-  async consume(request: ConsumeRequest): Promise<KafkaRecord[]> {
+  async consume(
+    request: ConsumeRequest,
+    onProgress?: (progress: ConsumeProgress) => void,
+  ): Promise<KafkaRecord[]> {
     const admin = this.requireAdmin()
     const kafka = this.requireKafka()
     const limit = request.limit ?? 50
-    const timeoutMs = request.timeoutMs ?? 8000
+    const timeoutMs = request.timeoutMs ?? CONSUME_TIMEOUT_MS
     const offsets = await admin.fetchTopicOffsets(request.topic)
     const partitions = offsets.filter(
       (item) => request.partition == null || item.partition === request.partition,
     )
     if (partitions.length === 0) return []
 
+    // Decide where each partition starts, and how many records that window really
+    // holds, so the read can finish as soon as it has them all instead of idling
+    // until the timeout.
+    const seeks: Array<{ partition: number; offset: string }> = []
+    let available = 0
+    for (const item of partitions) {
+      const high = Number(item.high)
+      const low = Number(item.low)
+      let start: number
+      if (request.from === 'beginning') start = low
+      else if (request.from === 'offset' && request.offset != null) {
+        start = Math.max(low, Number(request.offset))
+      } else start = Math.max(low, high - Math.max(1, Math.ceil(limit / partitions.length)))
+      if (start >= high) continue
+      available += high - start
+      seeks.push({ partition: item.partition, offset: String(start) })
+    }
+    if (seeks.length === 0) return []
+    const target = Math.min(limit, available)
+
     const consumer = kafka.consumer({
       groupId: `kafdeck-browse-${randomUUID()}`,
       maxWaitTimeInMs: 500,
+      maxBytesPerPartition: MAX_BYTES_PER_PARTITION,
     })
     await consumer.connect()
     await consumer.subscribe({
@@ -405,44 +449,41 @@ export class KafkaManager {
     })
 
     const records: KafkaRecord[] = []
+    let crash: unknown = null
     let resolveDone: () => void = () => undefined
     const done = new Promise<void>((resolve) => {
       resolveDone = resolve
     })
     const timer = setTimeout(() => resolveDone(), timeoutMs)
+    const finish = () => {
+      clearTimeout(timer)
+      resolveDone()
+    }
+
+    consumer.on(consumer.events.CRASH, ({ payload }) => {
+      crash = payload.error
+      finish()
+    })
 
     await consumer.run({
       autoCommit: false,
       eachMessage: async ({ topic, partition, message }) => {
         if (request.partition != null && partition !== request.partition) return
         records.push(toRecord(topic, partition, message))
-        if (records.length >= limit) {
-          clearTimeout(timer)
-          resolveDone()
-        }
+        onProgress?.({ received: records.length, target })
+        if (records.length >= target) finish()
       },
     })
 
-    for (const item of partitions) {
-      const high = Number(item.high)
-      const low = Number(item.low)
-      let start = low
-      if (request.from === 'beginning') {
-        start = low
-      } else if (request.from === 'offset' && request.offset != null) {
-        start = Number(request.offset)
-      } else {
-        const perPartition = Math.max(1, Math.ceil(limit / partitions.length))
-        start = Math.max(low, high - perPartition)
-      }
-      if (start >= high) continue
-      consumer.seek({ topic: request.topic, partition: item.partition, offset: String(start) })
+    for (const seek of seeks) {
+      consumer.seek({ topic: request.topic, partition: seek.partition, offset: seek.offset })
     }
 
     await done
     clearTimeout(timer)
     await consumer.stop().catch(() => undefined)
     await consumer.disconnect().catch(() => undefined)
+    if (crash) throw consumerCrashError(crash)
     return records
       .sort((a, b) => Number(b.timestamp) - Number(a.timestamp) || Number(b.offset) - Number(a.offset))
       .slice(0, limit)
