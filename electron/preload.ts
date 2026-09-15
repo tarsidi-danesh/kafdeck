@@ -40,7 +40,9 @@ const api = {
     onLiveMessage: (handler: (record: KafkaRecord) => void) => {
       const listener = (_event: unknown, record: KafkaRecord) => handler(record)
       ipcRenderer.on('kafka:liveMessage', listener)
-      return () => ipcRenderer.removeListener('kafka:liveMessage', listener)
+      return () => {
+        ipcRenderer.removeListener('kafka:liveMessage', listener)
+      }
     },
   },
 }
