@@ -8,8 +8,19 @@
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build && electron-builder",
-    "preview": "vite preview"
+    "typecheck": "tsc --noEmit",
+    "icon": "node scripts/make-icon.cjs",
+    "build": "npm run typecheck && vite build",
+    "preview": "vite preview",
+    "pack": "npm run build && electron-builder --dir",
+    "dist": "npm run build && electron-builder",
+    "dist:mac": "npm run build && electron-builder --mac",
+    "dist:mac:arm64": "npm run build && electron-builder --mac --arm64",
+    "dist:mac:x64": "npm run build && electron-builder --mac --x64",
+    "dist:mac:universal": "npm run build && electron-builder --mac --universal",
+    "dist:win": "npm run build && electron-builder --win",
+    "dist:linux": "npm run build && electron-builder --linux",
+    "dist:all": "npm run build && electron-builder -mwl"
   },
   "dependencies": {
     "kafkajs": "^2.2.4",
@@ -32,28 +43,60 @@
   "build": {
     "appId": "com.kafdeck.app",
     "productName": "Kafdeck",
+    "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
     "directories": {
-      "output": "release"
+      "output": "release",
+      "buildResources": "build"
     },
     "files": [
       "dist",
       "dist-electron"
     ],
+    "afterPack": "scripts/adhoc-sign.cjs",
     "mac": {
       "category": "public.app-category.developer-tools",
+      "darkModeSupport": true,
+      "icon": "build/icon.png",
       "target": [
-        "dir"
+        "dmg",
+        "zip"
+      ]
+    },
+    "dmg": {
+      "title": "${productName} ${version}",
+      "contents": [
+        {
+          "x": 150,
+          "y": 190,
+          "type": "file"
+        },
+        {
+          "x": 420,
+          "y": 190,
+          "type": "link",
+          "path": "/Applications"
+        }
       ]
     },
     "linux": {
+      "category": "Development",
+      "icon": "build/icon.png",
       "target": [
-        "dir"
+        "AppImage",
+        "deb"
       ]
     },
     "win": {
+      "icon": "build/icon.png",
       "target": [
-        "dir"
+        "nsis",
+        "portable"
       ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true
     }
   }
 }

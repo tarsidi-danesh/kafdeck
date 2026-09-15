@@ -39,8 +39,41 @@ Connection details are stored in the Electron user-data folder on this machine.
 
 ## Build
 
+`npm run build` only type-checks and compiles the renderer and Electron bundles into
+`dist/` and `dist-electron/`. Use a `dist:*` script to produce an installable app.
+
 ```bash
-npm run build
+npm run dist:mac            # installers for the machine's own architecture
+npm run dist:mac:arm64      # Apple Silicon
+npm run dist:mac:x64        # Intel
+npm run dist:mac:universal   # single binary for both
+npm run dist:win            # NSIS installer + portable exe
+npm run dist:linux          # AppImage + deb
+npm run dist:all            # macOS, Windows and Linux in one pass
+npm run dist                # current platform, default targets
+npm run pack                # unpacked .app / folder only, no installer (fast)
 ```
 
-The packaged app is written to `release/`.
+Artifacts land in `release/`, named like `Kafdeck-0.1.0-mac-arm64.dmg`. Building for
+Windows or Linux from macOS needs Docker or Wine.
+
+### Icon
+
+`build/icon.png` is the only icon asset; electron-builder derives the `.icns` and
+`.ico` from it. It is generated rather than drawn by hand, so edit the constants at
+the top of `scripts/make-icon.cjs` and regenerate:
+
+```bash
+npm run icon
+```
+
+### Install on macOS
+
+Open the `.dmg` and drag **Kafdeck** to Applications.
+
+There is no Apple Developer ID in this project, so builds are ad-hoc signed locally
+(see `scripts/adhoc-sign.cjs`). That is enough for the app to launch on the machine
+that built it. A build copied off this machine gets quarantined by Gatekeeper, and
+macOS will report it as damaged — open it once via right-click → **Open**, or run
+`xattr -dr com.apple.quarantine /Applications/Kafdeck.app`. Set a `Developer ID
+Application` identity in the keychain to have electron-builder sign properly instead.
