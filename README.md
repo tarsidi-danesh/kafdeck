@@ -32,6 +32,7 @@ Then in Kafdeck add a connection to `localhost:9092` and connect.
 - Cluster overview: brokers, topic volume, group lag
 - Topic list, create, delete
 - Record browser with JSON inspector, filters, and live tail
+- Reads gzip, snappy, lz4 and zstd compressed topics
 - Produce messages with optional key and headers, or bulk-produce from a CSV file
 - Consumer groups with members, assignments, and lag
 
